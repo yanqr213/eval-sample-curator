@@ -1,0 +1,24 @@
+{
+  "fields": {
+    "id": "id",
+    "prompt": "prompt",
+    "output": "output",
+    "expected": "expected",
+    "score": "score",
+    "passed": "passed",
+    "model": "model",
+    "latency_ms": "latency_ms",
+    "cost_usd": "cost_usd",
+    "tags": "tags"
+  },
+  "score_band": [0.45, 0.75],
+  "tag_quotas": {
+    "rag": 2,
+    "classification": 1,
+    "regression": 2
+  },
+  "near_duplicate_threshold": 0.82,
+  "latency_outlier_z": 1.2,
+  "cost_outlier_z": 1.2,
+  "redact_pii": true
+}

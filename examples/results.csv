@@ -1,0 +1,4 @@
+id,prompt,output,expected,score,passed,model,latency_ms,cost_usd,tags
+csv-001,Answer eligibility question,Wrong tier,Gold tier only,0.2,false,gpt-a,900,0.011,"policy,regression"
+csv-002,Rewrite the customer note,Clear rewrite,Clear rewrite,0.73,true,gpt-a,820,0.010,writing
+csv-003,Resolve lookup task,No answer,Account is active,0.44,false,gpt-b,7600,0.045,rag
