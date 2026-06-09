@@ -49,3 +49,20 @@ def test_csv_report_shape():
 
     assert rows[0]["id"] == "x"
     assert rows[0]["reasons"] == "failure"
+
+
+def test_pr_comment_redacts_and_summarizes():
+    report = render_report([item()], "pr-comment", redact=True)
+
+    assert "## Eval Review Packet" in report
+    assert "Selected samples: **1**" in report
+    assert "`failure` 1" in report
+    assert "alice@team.test" not in report
+    assert "[REDACTED_EMAIL]" in report
+
+
+def test_pr_comment_empty_packet():
+    report = render_report([], "pr-comment", redact=True)
+
+    assert "Selected samples: **0**" in report
+    assert "No samples matched" in report

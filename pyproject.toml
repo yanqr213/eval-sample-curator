@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "eval-sample-curator"
-version = "0.1.0"
+version = "0.2.0"
 description = "Offline CLI that curates compact human-review packets from LLM eval results."
 readme = "README.md"
 requires-python = ">=3.9"

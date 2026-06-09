@@ -28,7 +28,7 @@ def test_cli_writes_output_and_returns_zero(tmp_path):
     assert "failure" in output_path.read_text(encoding="utf-8")
 
 
-def test_cli_check_still_writes_output(tmp_path):
+def test_cli_check_writes_no_output(tmp_path):
     input_path = tmp_path / "results.jsonl"
     output_path = tmp_path / "packets" / "empty.md"
     input_path.write_text(
@@ -39,7 +39,24 @@ def test_cli_check_still_writes_output(tmp_path):
     code = main([str(input_path), "--output", str(output_path), "--check"])
 
     assert code == 1
-    assert output_path.exists()
+    assert not output_path.exists()
+
+
+def test_cli_pr_comment_output(tmp_path):
+    input_path = tmp_path / "results.jsonl"
+    output_path = tmp_path / "packets" / "comment.md"
+    input_path.write_text(
+        json.dumps({"id": "x", "prompt": "contact alice@team.test", "score": 0.1, "passed": False})
+        + "\n",
+        encoding="utf-8",
+    )
+
+    code = main([str(input_path), "--format", "pr-comment", "--output", str(output_path)])
+
+    assert code == 0
+    text = output_path.read_text(encoding="utf-8")
+    assert "Eval Review Packet" in text
+    assert "alice@team.test" not in text
 
 
 def test_cli_check_returns_one_when_no_samples_selected(tmp_path):

@@ -19,6 +19,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         rules = load_rules(args.rules)
         samples = load_samples(args.input, rules.fields)
         curated = curate_samples(samples, rules, args.limit)
+        if args.check:
+            return 0 if curated else 1
         report = render_report(curated, args.format, redact=rules.redact_pii)
         if args.output:
             output_path = Path(args.output)
@@ -26,8 +28,6 @@ def main(argv: Optional[List[str]] = None) -> int:
             output_path.write_text(report, encoding="utf-8")
         else:
             sys.stdout.write(report)
-        if args.check:
-            return 0 if curated else 1
         return 0
     except (LoadError, ValueError, OSError, json.JSONDecodeError) as exc:
         sys.stderr.write(f"error: {exc}\n")
@@ -42,7 +42,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("input", help="JSONL or CSV eval result file")
     parser.add_argument(
         "--format",
-        choices=["markdown", "json", "csv"],
+        choices=["markdown", "json", "csv", "pr-comment"],
         default="markdown",
         help="review packet output format",
     )

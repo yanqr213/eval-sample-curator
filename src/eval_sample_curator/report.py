@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import json
+from collections import Counter
 from io import StringIO
 from typing import Iterable, List
 
@@ -16,7 +17,9 @@ def render_report(items: List[CuratedSample], output_format: str, redact: bool =
         return json.dumps([_as_dict(item, redact) for item in items], ensure_ascii=False, indent=2)
     if output_format == "csv":
         return _render_csv(items, redact)
-    raise ValueError("format must be markdown, json, or csv")
+    if output_format == "pr-comment":
+        return _render_pr_comment(items, redact)
+    raise ValueError("format must be markdown, json, csv, or pr-comment")
 
 
 def _render_markdown(items: Iterable[CuratedSample], redact: bool) -> str:
@@ -105,6 +108,59 @@ def _render_csv(items: Iterable[CuratedSample], redact: bool) -> str:
     return buffer.getvalue()
 
 
+def _render_pr_comment(items: Iterable[CuratedSample], redact: bool) -> str:
+    selected = list(items)
+    reason_counts: Counter[str] = Counter()
+    tag_counts: Counter[str] = Counter()
+    for item in selected:
+        reason_counts.update(item.reasons)
+        tag_counts.update(item.sample.tags)
+
+    lines = [
+        "## Eval Review Packet",
+        "",
+        f"- Selected samples: **{len(selected)}**",
+        f"- Reasons: {_format_counter(reason_counts)}",
+        f"- Tags: {_format_counter(tag_counts)}",
+        "",
+    ]
+    if not selected:
+        lines.extend(
+            [
+                "No samples matched the current curation rules.",
+                "",
+            ]
+        )
+        return "\n".join(lines)
+
+    lines.extend(
+        [
+            "| # | Sample | Priority | Reasons | Score | Passed | Model | Notes |",
+            "| ---: | --- | ---: | --- | ---: | --- | --- | --- |",
+        ]
+    )
+    for index, item in enumerate(selected[:10], start=1):
+        sample = item.sample
+        notes = _sample_note(item, redact)
+        lines.append(
+            "| {index} | `{sample_id}` | {priority:.2f} | {reasons} | {score} | {passed} | {model} | {notes} |".format(
+                index=index,
+                sample_id=_md(sample.id),
+                priority=item.priority,
+                reasons=_md(", ".join(item.reasons)),
+                score=_md(_value(sample.score)),
+                passed=_md(_value(sample.passed)),
+                model=_md(sample.model or "-"),
+                notes=_md(notes),
+            )
+        )
+    if len(selected) > 10:
+        lines.append("")
+        lines.append(f"_Showing top 10 of {len(selected)} selected samples. See the full packet artifact for details._")
+    lines.append("")
+    return "\n".join(lines)
+
+
 def _as_dict(item: CuratedSample, redact: bool) -> dict:
     sample = item.sample
     return {
@@ -135,3 +191,34 @@ def _value(value: object) -> str:
         return "-"
     return str(value)
 
+
+def _format_counter(counter: Counter[str]) -> str:
+    if not counter:
+        return "-"
+    return ", ".join(f"`{_md(name)}` {count}" for name, count in sorted(counter.items()))
+
+
+def _sample_note(item: CuratedSample, redact: bool) -> str:
+    sample = item.sample
+    pieces = []
+    if "latency_ms" in item.evidence:
+        pieces.append(f"latency {item.evidence['latency_ms']}ms")
+    if "cost_usd" in item.evidence:
+        pieces.append(f"cost ${item.evidence['cost_usd']}")
+    if "models" in item.evidence:
+        pieces.append("models " + ", ".join(str(model) for model in item.evidence["models"]))
+    preview = _trim(_maybe_redact(sample.prompt or sample.output or sample.expected, redact), 90)
+    if preview:
+        pieces.append(preview)
+    return "; ".join(pieces) or "-"
+
+
+def _trim(value: str, limit: int) -> str:
+    compact = " ".join(value.split())
+    if len(compact) <= limit:
+        return compact
+    return compact[: limit - 1].rstrip() + "…"
+
+
+def _md(value: str) -> str:
+    return str(value).replace("|", "\\|").replace("\n", " ")

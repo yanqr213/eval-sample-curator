@@ -9,7 +9,7 @@
 - 每次 prompt 或模型版本变更后，从上千条 eval 结果里挑 20 条最该人工看的样本。
 - RAG eval 中优先复盘检索/生成失败、边界得分和慢请求。
 - 多模型 A/B 对比时找出同一 case 上通过/失败不一致的样本。
-- 把 review packet 交给产品、QA、领域专家，用 Markdown/JSON/CSV 协作复盘。
+- 把 review packet 交给产品、QA、领域专家，用 Markdown/JSON/CSV 协作复盘，或生成紧凑 PR comment 贴到 GitHub / GitLab。
 
 ## 安装
 
@@ -35,7 +35,7 @@ curate examples/results.jsonl \
 curate examples/results.jsonl --rules examples/rules.json --check
 ```
 
-`--check` 在至少选出 1 条样本时退出码为 `0`，否则为 `1`。这适合放在 CI 或 nightly eval 流程里。
+`--check` 不写报告；在至少选出 1 条样本时退出码为 `0`，否则为 `1`。这适合放在 CI 或 nightly eval 流程里。
 
 ## 输入格式
 
@@ -125,6 +125,18 @@ CSV 适合表格协作：
 curate examples/results.csv --format csv --output packet.csv
 ```
 
+PR comment 适合 CI step summary 或 `gh pr comment --body-file`：
+
+```bash
+curate examples/results.jsonl \
+  --format pr-comment \
+  --rules examples/rules.json \
+  --limit 10 \
+  --output review-comment.md
+```
+
+`pr-comment` 只输出摘要、理由分布、标签分布和前 10 条样本的脱敏短备注，不展开完整 prompt/output/expected。完整复盘仍建议上传 Markdown/JSON packet artifact。
+
 ## 测试
 
 ```bash
@@ -144,7 +156,7 @@ python -m pytest
 
 `eval-sample-curator` is an offline command-line tool for selecting a compact, high-value human review packet from LLM evaluation results. It is designed for developers and product teams working on LLM evals, prompt regression testing, and RAG evaluation.
 
-The tool reads JSONL or CSV files, applies configurable field mappings, scores samples with explainable reasons, suppresses near-duplicates, optionally redacts common PII patterns, and exports the selected review packet as Markdown, JSON, or CSV.
+The tool reads JSONL or CSV files, applies configurable field mappings, scores samples with explainable reasons, suppresses near-duplicates, optionally redacts common PII patterns, and exports the selected review packet as Markdown, JSON, CSV, or a compact PR comment.
 
 ### Install
 
@@ -158,7 +170,7 @@ Python 3.9+ is required. Runtime code uses the Python standard library only. Tes
 
 ```bash
 curate INPUT \
-  --format markdown|json|csv \
+  --format markdown|json|csv|pr-comment \
   --rules rules.json \
   --limit 20 \
   --output packet.md \
@@ -177,6 +189,10 @@ curate INPUT \
 - Tag quotas for review packet diversity.
 - Near-duplicate suppression with token Jaccard similarity.
 - Rule-based PII redaction for exported packets.
+
+### PR Comments
+
+Use `--format pr-comment` to generate a compact Markdown summary for pull requests or CI job summaries. It includes reason and tag distributions plus the top selected samples, with short redacted notes instead of full prompt/output/expected text.
 
 ### Configuration
 

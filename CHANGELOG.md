@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.0 - 2026-06-09
+
+- Added `pr-comment` output for compact PR/CI review summaries.
+- Made `--check` skip report writing, matching the documented CI gate behavior.
+- Added CI smoke coverage for Markdown and PR comment packet generation.
+
 ## 0.1.0 - 2026-06-08
 
 - Initial local release.
